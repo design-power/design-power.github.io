@@ -57,7 +57,6 @@ export function CoverPage() {
       </animated.button>
 
       <img className="cover-heart-placeholder" src="/images/heart.webp" alt="" aria-hidden />
-      <p className="cover-swipe-hint">свайп влево</p>
     </section>
   );
 }

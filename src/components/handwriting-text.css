@@ -19,6 +19,13 @@
       calc(var(--handwriting-delay, 0ms) + var(--handwriting-duration, 1200ms)) forwards;
 }
 
+.handwriting-text__content--complete {
+  width: auto;
+  overflow: visible;
+  padding-right: 0;
+  border-right-color: transparent;
+}
+
 .handwriting-text__content--inactive {
   animation: none;
   width: 0;

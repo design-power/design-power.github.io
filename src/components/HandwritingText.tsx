@@ -24,6 +24,7 @@ export function HandwritingText({
   const previousRef = useRef({ text, isActive });
   const [targetWidth, setTargetWidth] = useState(0);
   const [animationKey, setAnimationKey] = useState(0);
+  const [isRevealComplete, setIsRevealComplete] = useState(false);
 
   useLayoutEffect(() => {
     const element = measureRef.current;
@@ -58,11 +59,24 @@ export function HandwritingText({
     const textChangedWhileActive = previous.text !== text && isActive;
 
     if (becameActive || textChangedWhileActive) {
+      setIsRevealComplete(false);
       setAnimationKey((prev) => prev + 1);
+    }
+
+    if (!isActive) {
+      setIsRevealComplete(false);
     }
 
     previousRef.current = { text, isActive };
   }, [isActive, text]);
+
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+
+    setIsRevealComplete(false);
+  }, [animationKey, isActive]);
 
   const style = {
     '--handwriting-duration': `${durationMs}ms`,
@@ -78,7 +92,14 @@ export function HandwritingText({
         ref={measureRef}
         className={`handwriting-text__content ${
           isActive ? '' : 'handwriting-text__content--inactive'
-        }`.trim()}
+        } ${isRevealComplete ? 'handwriting-text__content--complete' : ''}`.trim()}
+        onAnimationEnd={(event) => {
+          if (event.animationName !== 'handwriting-reveal') {
+            return;
+          }
+
+          setIsRevealComplete(true);
+        }}
       >
         {text}
       </span>

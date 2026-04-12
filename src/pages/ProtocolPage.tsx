@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { animated } from '@react-spring/web';
 import { useNavigate } from 'react-router-dom';
 import { useHorizontalSwipe } from '../hooks/useHorizontalSwipe';
 import { useInViewAnimation } from '../hooks/useInViewAnimation';
 import { useScrollStaggerReveal } from '../hooks/useScrollStaggerReveal';
-import { useStampAnimation } from '../hooks/useStampAnimation';
+import { useVerdictStampAnimation } from '../hooks/useVerdictStampAnimation';
 import { CellsInput } from '../components/CellsInput';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { HandwritingText } from '../components/HandwritingText';
@@ -20,7 +20,6 @@ export function ProtocolPage() {
 
   const [isVisibleMap, setVisibleMap] = useState(false);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-  const [isVerdictStampActivated, setIsVerdictStampActivated] = useState(false);
 
   const groomNameAnimation = useInViewAnimation<HTMLDivElement>({
     threshold: 0.35,
@@ -75,22 +74,10 @@ export function ProtocolPage() {
     once: true,
   });
 
-  const verdictStampTrigger = useInViewAnimation<SVGSVGElement>({
-    threshold: 0.35,
-    rootMargin: '0px 0px -10% 0px',
-    once: true,
-  });
-
-  useEffect(() => {
-    if (verdictStampTrigger.isActive) {
-      setIsVerdictStampActivated(true);
-    }
-  }, [verdictStampTrigger.isActive]);
-
-  const verdictStampAnimation = useStampAnimation({
-    enabled: isVerdictStampActivated,
+  const verdictStampAnimation = useVerdictStampAnimation<HTMLElement>({
     delayMs: 1000,
     finalRotationDeg: 0,
+    triggerBandPercent: 0.1,
   });
 
   const swipeHandlers = useHorizontalSwipe({
@@ -258,7 +245,7 @@ export function ProtocolPage() {
         </p>
       </article>
 
-      <section className="protocol-block">
+      <section className="protocol-block" ref={verdictStampAnimation.ref}>
         <h2 className="protocol-verdict">ПОСТАНОВЛЕНО</h2>
         <p className="protocol-verdict-text">
           Назначить процедуру официального бракосочетания <br /> на{' '}
@@ -288,7 +275,6 @@ export function ProtocolPage() {
         </p>
 
         <animated.svg
-          ref={verdictStampTrigger.ref}
           style={verdictStampAnimation.style}
           width="419"
           height="419"
@@ -376,7 +362,7 @@ export function ProtocolPage() {
         </p>
         <p className="protocol-place-value" ref={addressAnimation.ref}>
           <HandwritingText
-            text="Ул. Сибиряков-Гвардейцев, 275 б/1"
+            text="Ул. Сибиряков&mdash;Гвардейцев, 275 б/1"
             durationMs={3400}
             delayMs={2000}
             steps={34}
@@ -566,8 +552,6 @@ export function ProtocolPage() {
 
         <CountdownTimer singleDate={SINGLE_DATE} />
       </section>
-
-      <p className="protocol-swipe-hint">свайп вправо к обложке</p>
     </section>
   );
 }
