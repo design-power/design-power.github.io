@@ -2,9 +2,8 @@ import { useRef, useState } from 'react';
 import { animated } from '@react-spring/web';
 import { useNavigate } from 'react-router-dom';
 import { useHorizontalSwipe } from '../hooks/useHorizontalSwipe';
-import { useInViewAnimation } from '../hooks/useInViewAnimation';
-import { useScrollStaggerReveal } from '../hooks/useScrollStaggerReveal';
-import { useVerdictStampAnimation } from '../hooks/useVerdictStampAnimation';
+import { useProtocolAnimations } from '../hooks/useProtocolAnimations';
+import { useProtocolWitnessForm } from '../hooks/useProtocolWitnessForm';
 import { CellsInput } from '../components/CellsInput';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { HandwritingText } from '../components/HandwritingText';
@@ -12,7 +11,6 @@ import { HandwritingText } from '../components/HandwritingText';
 import './protocol.css';
 
 const SINGLE_DATE = new Date(2026, 6, 3).getTime();
-const DRESS_PALETTE_TONES = ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'tone-5'] as const;
 
 export function ProtocolPage() {
   const navigate = useNavigate();
@@ -21,64 +19,20 @@ export function ProtocolPage() {
   const [isVisibleMap, setVisibleMap] = useState(false);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
-  const groomNameAnimation = useInViewAnimation<HTMLDivElement>({
-    threshold: 0.35,
-    rootMargin: '0px 0px -8% 0px',
-    once: true,
-  });
-
-  const brideNameAnimation = useInViewAnimation<HTMLDivElement>({
-    threshold: 0.45,
-    rootMargin: '0px 0px -10% 0px',
-    once: true,
-  });
-
-  const singleDayAnimation = useInViewAnimation<HTMLDivElement>({
-    threshold: 0.35,
-    rootMargin: '0px 0px -10% 0px',
-    once: true,
-  });
-
-  const singleMonthAnimation = useInViewAnimation<HTMLDivElement>({
-    threshold: 0.45,
-    rootMargin: '0px 0px -10% 0px',
-    once: true,
-  });
-
-  const addressAnimation = useInViewAnimation<HTMLDivElement>({
-    threshold: 0.35,
-    rootMargin: '0px 0px -10% 0px',
-    once: true,
-  });
-
-  const answerDayAnimation = useInViewAnimation<HTMLDivElement>({
-    threshold: 0.35,
-    rootMargin: '0px 0px -10% 0px',
-    once: true,
-  });
-
-  const answerMonthAnimation = useInViewAnimation<HTMLDivElement>({
-    threshold: 0.45,
-    rootMargin: '0px 0px -10% 0px',
-    once: true,
-  });
-  const timelineRingsAnimation = useInViewAnimation<HTMLImageElement>({
-    threshold: 0.35,
-    rootMargin: '0px 0px -20% 0px',
-    once: true,
-  });
-  const dressPaletteReveal = useScrollStaggerReveal<HTMLDivElement>({
-    totalItems: DRESS_PALETTE_TONES.length,
-    startViewportRatio: 0.92,
-    endViewportRatio: 0.5,
-    once: true,
-  });
-
-  const verdictStampAnimation = useVerdictStampAnimation<HTMLElement>({
-    delayMs: 1000,
-    finalRotationDeg: 0,
-    triggerBandPercent: 0.1,
-  });
+  const {
+    groomNameAnimation,
+    brideNameAnimation,
+    singleDayAnimation,
+    singleMonthAnimation,
+    addressAnimation,
+    answerDayAnimation,
+    answerMonthAnimation,
+    timelineRingsAnimation,
+    dressPaletteReveal,
+    verdictStampAnimation,
+    dressPaletteTones,
+  } = useProtocolAnimations();
+  const { formSubmitStatus, formSubmitMessage, handleSubmitWitnessForm } = useProtocolWitnessForm();
 
   const swipeHandlers = useHorizontalSwipe({
     onSwipeRight: () => navigate('/'),
@@ -452,7 +406,7 @@ export function ProtocolPage() {
         </p>
         <div className="protocol-dress-palette" ref={dressPaletteReveal.ref}>
           <div className="palette-row">
-            {DRESS_PALETTE_TONES.map((toneClass, index) => (
+            {dressPaletteTones.map((toneClass, index) => (
               <div
                 key={toneClass}
                 className={`palette ${toneClass} ${
@@ -515,7 +469,7 @@ export function ProtocolPage() {
           <br />
           <br />и внести данные:
         </p>
-        <form className="form">
+        <form className="form" onSubmit={handleSubmitWitnessForm}>
           <textarea
             name="name"
             className="textarea"
@@ -545,9 +499,12 @@ export function ProtocolPage() {
             />
             <span className="checkbox-custom"></span>Я не приду
           </label>
-          <button className="submit" type="submit">
-            Отправить
+          <button className="submit" type="submit" disabled={formSubmitStatus === 'submitting'}>
+            {formSubmitStatus === 'submitting' ? 'Отправка...' : 'Отправить'}
           </button>
+          {formSubmitStatus !== 'idle' && (
+            <p className={'form-status form-status--' + formSubmitStatus}>{formSubmitMessage}</p>
+          )}
         </form>
 
         <CountdownTimer singleDate={SINGLE_DATE} />
