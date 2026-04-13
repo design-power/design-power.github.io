@@ -12,6 +12,7 @@ type Env = {
   ALLOWED_ORIGINS?: string;
   YANDEX_FORMS_OAUTH_TOKEN?: string;
   YANDEX_FORMS_ORG_ID?: string;
+  YANDEX_FORMS_CLOUD_ORG_ID?: string;
   SUBMIT_DEDUP_ENABLED?: string;
   SUBMIT_DEDUP_FIELD_NAME?: string;
   SUBMIT_DEDUP_TTL_SECONDS?: string;
@@ -191,6 +192,7 @@ const createUpstreamHeaders = (request: Request, env: Env, includeContentType: b
   }
 
   const envOrgId = (env.YANDEX_FORMS_ORG_ID ?? '').trim();
+  const envCloudOrgId = (env.YANDEX_FORMS_CLOUD_ORG_ID ?? '').trim();
   const requestOrgId = (request.headers.get('X-Org-Id') ?? '').trim();
   const requestCloudOrgId = (request.headers.get('X-Cloud-Org-Id') ?? '').trim();
 
@@ -200,7 +202,9 @@ const createUpstreamHeaders = (request: Request, env: Env, includeContentType: b
     upstreamHeaders.set('X-Org-Id', requestOrgId);
   }
 
-  if (requestCloudOrgId) {
+  if (envCloudOrgId) {
+    upstreamHeaders.set('X-Cloud-Org-Id', envCloudOrgId);
+  } else if (requestCloudOrgId) {
     upstreamHeaders.set('X-Cloud-Org-Id', requestCloudOrgId);
   }
 

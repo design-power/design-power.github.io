@@ -56,7 +56,7 @@ const getNextPageUrl = (apiBaseUrl: string, nextUrl: string) => {
     return nextUrl;
   }
 
-  const normalizedPath = nextUrl.startsWith('/v1/') ? nextUrl.replace(/^\/v1/, '') : nextUrl;
+  const normalizedPath = nextUrl.replace(/^\/v\d+/, '');
 
   if (normalizedPath.startsWith('/')) {
     return apiBaseUrl + normalizedPath;

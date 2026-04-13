@@ -19,6 +19,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       YANDEX_FORMS_OAUTH_TOKEN: ${{ secrets.YANDEX_FORMS_OAUTH_TOKEN }}
       YANDEX_FORMS_ORG_ID: ${{ secrets.YANDEX_FORMS_ORG_ID }}
+      YANDEX_FORMS_CLOUD_ORG_ID: ${{ secrets.YANDEX_FORMS_CLOUD_ORG_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,5 +36,9 @@ jobs:
 
           if [ -n "$YANDEX_FORMS_ORG_ID" ]; then
             echo "$YANDEX_FORMS_ORG_ID" | npx wrangler secret put YANDEX_FORMS_ORG_ID
+          fi
+
+          if [ -n "$YANDEX_FORMS_CLOUD_ORG_ID" ]; then
+            echo "$YANDEX_FORMS_CLOUD_ORG_ID" | npx wrangler secret put YANDEX_FORMS_CLOUD_ORG_ID
           fi
       - run: npm run deploy
