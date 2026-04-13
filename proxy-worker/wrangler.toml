@@ -8,6 +8,8 @@ ALLOWED_ORIGINS = "https://design-power.github.io,http://localhost:5173"
 SUBMIT_DEDUP_ENABLED = "true"
 SUBMIT_DEDUP_FIELD_NAME = "name"
 SUBMIT_DEDUP_TTL_SECONDS = "31536000"
+# Optional fallback for answers API. Better set as Worker secret YANDEX_FORMS_ORG_ID.
+# YANDEX_FORMS_ORG_ID = ""
 
 # Optional: bind KV to block duplicate submissions server-side.
 # Create KV namespace and paste its id below.

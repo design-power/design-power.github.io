@@ -1,5 +1,6 @@
 const YANDEX_FORMS_BASE_URL = 'https://api.forms.yandex.net/v1';
 const SUBMIT_PATH_RE = /^\/surveys\/([a-z0-9]+)\/form\/?$/i;
+const ANSWERS_PATH_RE = /^\/surveys\/([a-z0-9]+)\/answers\/?$/i;
 const DEFAULT_DEDUP_TTL_SECONDS = 60 * 60 * 24 * 365;
 
 type KVStore = {
@@ -10,6 +11,7 @@ type KVStore = {
 type Env = {
   ALLOWED_ORIGINS?: string;
   YANDEX_FORMS_OAUTH_TOKEN?: string;
+  YANDEX_FORMS_ORG_ID?: string;
   SUBMIT_DEDUP_ENABLED?: string;
   SUBMIT_DEDUP_FIELD_NAME?: string;
   SUBMIT_DEDUP_TTL_SECONDS?: string;
@@ -48,8 +50,8 @@ const getCorsHeaders = (origin: string) => {
     headers.set('Vary', 'Origin');
   }
 
-  headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Org-Id, X-Cloud-Org-Id');
   headers.set('Access-Control-Max-Age', '86400');
 
   return headers;
@@ -61,6 +63,17 @@ const jsonResponse = (payload: Record<string, string>, status: number, corsHeade
 
   return new Response(JSON.stringify(payload), {
     status,
+    headers,
+  });
+};
+
+const toUpstreamResponse = async (upstreamResponse: Response, corsHeaders: Headers) => {
+  const body = await upstreamResponse.text();
+  const headers = new Headers(corsHeaders);
+  headers.set('Content-Type', upstreamResponse.headers.get('Content-Type') ?? 'application/json');
+
+  return new Response(body, {
+    status: upstreamResponse.status,
     headers,
   });
 };
@@ -162,6 +175,38 @@ const parseSubmitPayload = (requestBodyText: string): Record<string, unknown> | 
   }
 };
 
+const createUpstreamHeaders = (request: Request, env: Env, includeContentType: boolean) => {
+  const upstreamHeaders = new Headers();
+
+  if (includeContentType) {
+    upstreamHeaders.set('Content-Type', request.headers.get('Content-Type') ?? 'application/json');
+  }
+
+  const workerToken = (env.YANDEX_FORMS_OAUTH_TOKEN ?? '').trim();
+  const requestToken = request.headers.get('Authorization') ?? '';
+  const authHeader = workerToken ? `OAuth ${workerToken}` : requestToken;
+
+  if (authHeader) {
+    upstreamHeaders.set('Authorization', authHeader);
+  }
+
+  const envOrgId = (env.YANDEX_FORMS_ORG_ID ?? '').trim();
+  const requestOrgId = (request.headers.get('X-Org-Id') ?? '').trim();
+  const requestCloudOrgId = (request.headers.get('X-Cloud-Org-Id') ?? '').trim();
+
+  if (envOrgId) {
+    upstreamHeaders.set('X-Org-Id', envOrgId);
+  } else if (requestOrgId) {
+    upstreamHeaders.set('X-Org-Id', requestOrgId);
+  }
+
+  if (requestCloudOrgId) {
+    upstreamHeaders.set('X-Cloud-Org-Id', requestCloudOrgId);
+  }
+
+  return upstreamHeaders;
+};
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -187,11 +232,22 @@ export default {
       return jsonResponse({ status: 'ok' }, 200, corsHeaders);
     }
 
+    const submitPathMatch = url.pathname.match(SUBMIT_PATH_RE);
+    const answersPathMatch = url.pathname.match(ANSWERS_PATH_RE);
+
+    if (request.method === 'GET' && answersPathMatch) {
+      const upstreamHeaders = createUpstreamHeaders(request, env, false);
+      const upstreamResponse = await fetch(YANDEX_FORMS_BASE_URL + url.pathname + url.search, {
+        method: 'GET',
+        headers: upstreamHeaders,
+      });
+
+      return toUpstreamResponse(upstreamResponse, corsHeaders);
+    }
+
     if (request.method !== 'POST') {
       return jsonResponse({ error: 'Method not allowed' }, 405, corsHeaders);
     }
-
-    const submitPathMatch = url.pathname.match(SUBMIT_PATH_RE);
 
     if (!submitPathMatch) {
       return jsonResponse({ error: 'Unsupported path' }, 404, corsHeaders);
@@ -199,18 +255,7 @@ export default {
 
     const surveyId = submitPathMatch[1].toLowerCase();
     const requestBodyText = await request.text();
-
-    const upstreamHeaders = new Headers({
-      'Content-Type': request.headers.get('Content-Type') ?? 'application/json',
-    });
-
-    const workerToken = (env.YANDEX_FORMS_OAUTH_TOKEN ?? '').trim();
-    const requestToken = request.headers.get('Authorization') ?? '';
-    const authHeader = workerToken ? `OAuth ${workerToken}` : requestToken;
-
-    if (authHeader) {
-      upstreamHeaders.set('Authorization', authHeader);
-    }
+    const upstreamHeaders = createUpstreamHeaders(request, env, true);
 
     const dedupStore = env.SUBMIT_DEDUP_KV;
     let dedupKey: string | null = null;
@@ -248,10 +293,6 @@ export default {
       body: requestBodyText,
     });
 
-    const body = await upstreamResponse.text();
-    const headers = new Headers(corsHeaders);
-    headers.set('Content-Type', upstreamResponse.headers.get('Content-Type') ?? 'application/json');
-
     if (upstreamResponse.ok && dedupStore && dedupKey) {
       await dedupStore.put(
         dedupKey,
@@ -265,9 +306,6 @@ export default {
       );
     }
 
-    return new Response(body, {
-      status: upstreamResponse.status,
-      headers,
-    });
+    return toUpstreamResponse(upstreamResponse, corsHeaders);
   },
 };

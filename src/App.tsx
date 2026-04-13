@@ -1,6 +1,7 @@
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { CoverPage } from './pages/CoverPage';
 import { ProtocolPage } from './pages/ProtocolPage';
+import { ResultsPage } from './pages/ResultsPage';
 import './app.css';
 
 import type { Location } from 'react-router-dom';
@@ -13,6 +14,7 @@ function App() {
       <Routes location={routeLocation}>
         <Route path="/" element={<CoverPage />} />
         <Route path="/protocol" element={<ProtocolPage />} />
+        <Route path="/results" element={<ResultsPage />} />
         <Route path="*" element={<CoverPage />} />
       </Routes>
     );

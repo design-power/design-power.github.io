@@ -23,6 +23,8 @@ jobs:
       VITE_YANDEX_FORMS_SURVEY_ID: ${{ vars.VITE_YANDEX_FORMS_SURVEY_ID != '' && vars.VITE_YANDEX_FORMS_SURVEY_ID || secrets.VITE_YANDEX_FORMS_SURVEY_ID }}
       VITE_YANDEX_FORMS_NAME_SLUG: ${{ vars.VITE_YANDEX_FORMS_NAME_SLUG != '' && vars.VITE_YANDEX_FORMS_NAME_SLUG || secrets.VITE_YANDEX_FORMS_NAME_SLUG }}
       VITE_YANDEX_FORMS_CONFIRMATION_SLUG: ${{ vars.VITE_YANDEX_FORMS_CONFIRMATION_SLUG != '' && vars.VITE_YANDEX_FORMS_CONFIRMATION_SLUG || secrets.VITE_YANDEX_FORMS_CONFIRMATION_SLUG }}
+      VITE_YANDEX_FORMS_ORG_ID: ${{ vars.VITE_YANDEX_FORMS_ORG_ID != '' && vars.VITE_YANDEX_FORMS_ORG_ID || secrets.VITE_YANDEX_FORMS_ORG_ID }}
+      VITE_YANDEX_FORMS_CLOUD_ORG_ID: ${{ vars.VITE_YANDEX_FORMS_CLOUD_ORG_ID != '' && vars.VITE_YANDEX_FORMS_CLOUD_ORG_ID || secrets.VITE_YANDEX_FORMS_CLOUD_ORG_ID }}
       VITE_YANDEX_FORMS_KEY: ${{ vars.VITE_YANDEX_FORMS_KEY != '' && vars.VITE_YANDEX_FORMS_KEY || secrets.VITE_YANDEX_FORMS_KEY }}
       VITE_YANDEX_FORMS_PROXY_URL: ${{ vars.VITE_YANDEX_FORMS_PROXY_URL != '' && vars.VITE_YANDEX_FORMS_PROXY_URL || secrets.VITE_YANDEX_FORMS_PROXY_URL }}
     steps:
@@ -49,6 +51,10 @@ jobs:
 
           if [ -z "$VITE_YANDEX_FORMS_CONFIRMATION_SLUG" ]; then
             echo "::warning::VITE_YANDEX_FORMS_CONFIRMATION_SLUG is empty, fallback default from code will be used"
+          fi
+
+          if [ -z "$VITE_YANDEX_FORMS_ORG_ID" ] && [ -z "$VITE_YANDEX_FORMS_CLOUD_ORG_ID" ]; then
+            echo "::warning::Org headers are not configured. /results page may fail with 'Требуется организация'"
           fi
       - run: npm ci
       - run: npm run build
