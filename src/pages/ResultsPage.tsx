@@ -1,9 +1,7 @@
-import { useNavigate } from 'react-router-dom';
 import { useSurveyResults } from '../hooks/useSurveyResults';
 import './results.css';
 
 export function ResultsPage() {
-  const navigate = useNavigate();
   const { rows, status, message, reload } = useSurveyResults();
 
   return (
