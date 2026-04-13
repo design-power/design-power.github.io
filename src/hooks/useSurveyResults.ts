@@ -22,7 +22,7 @@ export type SurveyResultRow = {
 export type SurveyResultsStatus = 'idle' | 'loading' | 'success' | 'error';
 
 type ApiAnswerItem = {
-  id?: string;
+  id?: string | number;
   value?: unknown;
   label?: unknown;
 };
@@ -30,11 +30,12 @@ type ApiAnswerItem = {
 type ApiAnswer = {
   id?: string | number;
   created?: string;
-  data?: ApiAnswerItem[];
+  data?: Array<ApiAnswerItem | null>;
 };
 
 type ApiColumn = {
-  id?: string;
+  id?: string | number;
+  slug?: string;
 };
 
 type ApiAnswersResponse = {
@@ -135,16 +136,34 @@ const normalizeDecision = (value: unknown) => {
 const getAnswerValue = (answer: ApiAnswer, columns: ApiColumn[], slug: string): unknown => {
   const answerData = Array.isArray(answer.data) ? answer.data : [];
 
-  const directValue = answerData.find((item) => item.id === slug)?.value;
+  for (const item of answerData) {
+    if (!item || typeof item !== 'object') {
+      continue;
+    }
 
-  if (directValue !== undefined) {
-    return directValue;
+    if (String(item.id ?? '') === slug) {
+      return item.value;
+    }
   }
 
-  const columnIndex = columns.findIndex((column) => column.id === slug);
+  const columnIndex = columns.findIndex((column) => {
+    if (!column || typeof column !== 'object') {
+      return false;
+    }
 
-  if (columnIndex >= 0 && answerData[columnIndex]) {
-    return answerData[columnIndex].value;
+    if (column.slug === slug) {
+      return true;
+    }
+
+    return String(column.id ?? '') === slug;
+  });
+
+  if (columnIndex >= 0) {
+    const columnValue = answerData[columnIndex];
+
+    if (columnValue && typeof columnValue === 'object') {
+      return columnValue.value;
+    }
   }
 
   return undefined;
