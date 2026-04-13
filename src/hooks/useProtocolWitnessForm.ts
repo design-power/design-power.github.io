@@ -1,24 +1,81 @@
 import { useCallback, useState } from 'react';
 import type { FormEvent } from 'react';
 
-const YANDEX_FORMS_ENDPOINT = 'https://api.forms.yandex.net/v1/surveys';
 const YANDEX_FORMS_SURVEY_ID = import.meta.env.VITE_YANDEX_FORMS_SURVEY_ID ?? '';
 const YANDEX_FORMS_NAME_SLUG = import.meta.env.VITE_YANDEX_FORMS_NAME_SLUG ?? 'name';
 const YANDEX_FORMS_CONFIRMATION_SLUG = import.meta.env.VITE_YANDEX_FORMS_CONFIRMATION_SLUG ?? 'confirmation';
-const YANDEX_FORMS_CONFIRMATION_YES_VALUE =
-  import.meta.env.VITE_YANDEX_FORMS_CONFIRMATION_YES_VALUE ?? 'yes';
-const YANDEX_FORMS_CONFIRMATION_NO_VALUE =
-  import.meta.env.VITE_YANDEX_FORMS_CONFIRMATION_NO_VALUE ?? 'no';
+const YANDEX_FORMS_KEY = import.meta.env.VITE_YANDEX_FORMS_KEY ?? '';
 const YANDEX_FORMS_OAUTH_TOKEN = import.meta.env.VITE_YANDEX_FORMS_OAUTH_TOKEN ?? '';
+const RAW_YANDEX_FORMS_PROXY_URL = import.meta.env.VITE_YANDEX_FORMS_PROXY_URL ?? '';
+const YANDEX_FORMS_PROXY_URL =
+  RAW_YANDEX_FORMS_PROXY_URL.trim() || (import.meta.env.DEV ? '/api/yandex-forms' : '');
+
+const WITNESS_FORM_SUBMITTED_STORAGE_KEY_BASE = 'wedding_invite_witness_form_submitted';
+
+const getFormsApiBaseUrl = () => YANDEX_FORMS_PROXY_URL.replace(/\/$/, '');
+const getSubmittedStorageKey = () =>
+  WITNESS_FORM_SUBMITTED_STORAGE_KEY_BASE + ':' + (YANDEX_FORMS_SURVEY_ID || 'default');
+
+const hasWindow = () => typeof window !== 'undefined';
+
+const readSubmittedFromStorage = (): boolean => {
+  if (!hasWindow()) {
+    return false;
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(getSubmittedStorageKey());
+
+    if (!rawValue) {
+      return false;
+    }
+
+    const parsed = JSON.parse(rawValue) as { submitted?: boolean };
+    return parsed.submitted === true;
+  } catch {
+    return false;
+  }
+};
+
+const writeSubmittedToStorage = () => {
+  if (!hasWindow()) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      getSubmittedStorageKey(),
+      JSON.stringify({
+        submitted: true,
+        submittedAt: new Date().toISOString(),
+      }),
+    );
+  } catch {
+    // Ignore storage write errors (Safari private mode / quota).
+  }
+};
+
+const ALREADY_SUBMITTED_MESSAGE =
+  'Ответ уже сохранен. Повторная отправка отключена на этом устройстве.';
 
 export type FormSubmitStatus = 'idle' | 'submitting' | 'success' | 'error';
 
 export function useProtocolWitnessForm() {
-  const [formSubmitStatus, setFormSubmitStatus] = useState<FormSubmitStatus>('idle');
-  const [formSubmitMessage, setFormSubmitMessage] = useState('');
+  const [formSubmitStatus, setFormSubmitStatus] = useState<FormSubmitStatus>(() =>
+    readSubmittedFromStorage() ? 'success' : 'idle',
+  );
+  const [formSubmitMessage, setFormSubmitMessage] = useState(() =>
+    readSubmittedFromStorage() ? ALREADY_SUBMITTED_MESSAGE : '',
+  );
 
   const handleSubmitWitnessForm = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (readSubmittedFromStorage()) {
+      setFormSubmitStatus('success');
+      setFormSubmitMessage(ALREADY_SUBMITTED_MESSAGE);
+      return;
+    }
 
     if (!YANDEX_FORMS_SURVEY_ID) {
       setFormSubmitStatus('error');
@@ -28,7 +85,16 @@ export function useProtocolWitnessForm() {
       return;
     }
 
-    const formData = new FormData(event.currentTarget);
+    if (!YANDEX_FORMS_PROXY_URL) {
+      setFormSubmitStatus('error');
+      setFormSubmitMessage(
+        'Не настроен VITE_YANDEX_FORMS_PROXY_URL для production. Укажите URL вашего proxy/backend.',
+      );
+      return;
+    }
+
+    const formElement = event.currentTarget;
+    const formData = new FormData(formElement);
     const fullName = String(formData.get('name') ?? '').trim();
     const confirmationRaw = String(formData.get('confirmation') ?? '').trim();
 
@@ -49,35 +115,40 @@ export function useProtocolWitnessForm() {
       headers.Authorization = 'OAuth ' + YANDEX_FORMS_OAUTH_TOKEN;
     }
 
-    const confirmationValue =
-      confirmationRaw === 'yes'
-        ? YANDEX_FORMS_CONFIRMATION_YES_VALUE
-        : YANDEX_FORMS_CONFIRMATION_NO_VALUE;
+    // Yandex bool question type expects true/false.
+    const confirmationValue = confirmationRaw === 'yes' || confirmationRaw === 'true';
+
+    const formsApiBaseUrl = getFormsApiBaseUrl();
+    const formsKey = YANDEX_FORMS_KEY.trim();
+    const submitQuery = formsKey ? '?key=' + encodeURIComponent(formsKey) : '';
+    const submitUrl =
+      formsApiBaseUrl + '/surveys/' + YANDEX_FORMS_SURVEY_ID + '/form' + submitQuery;
 
     try {
-      const response = await fetch(YANDEX_FORMS_ENDPOINT + '/' + YANDEX_FORMS_SURVEY_ID + '/form', {
+      const response = await fetch(submitUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          questions: [
-            {
-              slug: YANDEX_FORMS_NAME_SLUG,
-              value: fullName,
-            },
-            {
-              slug: YANDEX_FORMS_CONFIRMATION_SLUG,
-              value: confirmationValue,
-            },
-          ],
+          [YANDEX_FORMS_NAME_SLUG]: fullName,
+          [YANDEX_FORMS_CONFIRMATION_SLUG]: confirmationValue,
         }),
       });
 
       if (!response.ok) {
         const responseText = await response.text();
+
+        if (response.status === 409) {
+          writeSubmittedToStorage();
+          setFormSubmitStatus('success');
+          setFormSubmitMessage(ALREADY_SUBMITTED_MESSAGE);
+          return;
+        }
+
         throw new Error(responseText || 'HTTP ' + response.status);
       }
 
-      event.currentTarget.reset();
+      formElement.reset();
+      writeSubmittedToStorage();
       setFormSubmitStatus('success');
       setFormSubmitMessage('Спасибо! Ответ отправлен.');
     } catch (error) {

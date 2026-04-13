@@ -441,67 +441,75 @@ export function ProtocolPage() {
         <h2 className="protocol-title-number" data-number="V.">
           ЯВКА ПОНЯТОГО
         </h2>
-        <p className="protocol-witness-text">
-          Просим подтвердить личное присутствие <br /> до{' '}
-          <span className="protocol-witness-day-wrapper" ref={answerDayAnimation.ref}>
-            «___»
-            <HandwritingText
-              text="30"
-              durationMs={600}
-              delayMs={200}
-              steps={4}
-              className="protocol-witness-day"
-              isActive={answerDayAnimation.isActive}
-            />
-          </span>{' '}
-          <span className="protocol-witness-month-wrapper" ref={answerMonthAnimation.ref}>
-            ______
-            <HandwritingText
-              text="мая"
-              durationMs={1400}
-              delayMs={1000}
-              steps={6}
-              className="protocol-witness-month"
-              isActive={answerMonthAnimation.isActive}
-            />
-          </span>{' '}
-          2026г.
-          <br />
-          <br />и внести данные:
-        </p>
+        {formSubmitStatus !== 'success' && (
+          <p className="protocol-witness-text">
+            Просим подтвердить личное присутствие <br /> до{' '}
+            <span className="protocol-witness-day-wrapper" ref={answerDayAnimation.ref}>
+              «___»
+              <HandwritingText
+                text="30"
+                durationMs={600}
+                delayMs={200}
+                steps={4}
+                className="protocol-witness-day"
+                isActive={answerDayAnimation.isActive}
+              />
+            </span>{' '}
+            <span className="protocol-witness-month-wrapper" ref={answerMonthAnimation.ref}>
+              ______
+              <HandwritingText
+                text="мая"
+                durationMs={1400}
+                delayMs={1000}
+                steps={6}
+                className="protocol-witness-month"
+                isActive={answerMonthAnimation.isActive}
+              />
+            </span>{' '}
+            2026г.
+            <br />
+            <br />и внести данные:
+          </p>
+        )}
+
         <form className="form" onSubmit={handleSubmitWitnessForm}>
-          <textarea
-            name="name"
-            className="textarea"
-            rows={3}
-            required
-            placeholder="Введите ваше ФИО"
-          ></textarea>
-          <label className="checkbox-label" htmlFor="checkbox-confirmation-yes">
-            <input
-              id="checkbox-confirmation-yes"
-              name="confirmation"
-              type="radio"
-              className="checkbox"
-              value="yes"
-              required
-            />
-            <span className="checkbox-custom"></span>Я подтверждаю свое присутствие
-          </label>
-          <label className="checkbox-label" htmlFor="checkbox-confirmation-no">
-            <input
-              id="checkbox-confirmation-no"
-              name="confirmation"
-              type="radio"
-              className="checkbox"
-              value="no"
-              required
-            />
-            <span className="checkbox-custom"></span>Я не приду
-          </label>
-          <button className="submit" type="submit" disabled={formSubmitStatus === 'submitting'}>
-            {formSubmitStatus === 'submitting' ? 'Отправка...' : 'Отправить'}
-          </button>
+          {formSubmitStatus !== 'success' && (
+            <>
+              <textarea
+                name="name"
+                className="textarea"
+                rows={3}
+                required
+                placeholder="Введите ваше ФИО"
+              ></textarea>
+              <label className="checkbox-label" htmlFor="checkbox-confirmation-yes">
+                <input
+                  id="checkbox-confirmation-yes"
+                  name="confirmation"
+                  type="radio"
+                  className="checkbox"
+                  value="yes"
+                  required
+                />
+                <span className="checkbox-custom"></span>Я подтверждаю свое присутствие
+              </label>
+              <label className="checkbox-label" htmlFor="checkbox-confirmation-no">
+                <input
+                  id="checkbox-confirmation-no"
+                  name="confirmation"
+                  type="radio"
+                  className="checkbox"
+                  value="no"
+                  required
+                />
+                <span className="checkbox-custom"></span>Я не приду
+              </label>
+              <button className="submit" type="submit" disabled={formSubmitStatus === 'submitting'}>
+                {formSubmitStatus === 'submitting' ? 'Отправка...' : 'Отправить'}
+              </button>
+            </>
+          )}
+
           {formSubmitStatus !== 'idle' && (
             <p className={'form-status form-status--' + formSubmitStatus}>{formSubmitMessage}</p>
           )}

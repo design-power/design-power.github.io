@@ -1,73 +1,91 @@
-# React + TypeScript + Vite
+# Wedding Invite (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Mobile-first SPA invitation with two routes (`/` and `/protocol`), page transitions and Yandex Forms RSVP submit.
 
-Currently, two official plugins are available:
+## Local run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+For local development, Yandex Forms requests go through Vite proxy:
+- frontend calls `/api/yandex-forms/surveys/:id/form`
+- Vite forwards to `https://api.forms.yandex.net/v1/surveys/:id/form`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Environment variables
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Copy `.env.example` to `.env` and fill values:
+
+- `VITE_YANDEX_FORMS_SURVEY_ID`
+- `VITE_YANDEX_FORMS_NAME_SLUG`
+- `VITE_YANDEX_FORMS_CONFIRMATION_SLUG`
+- `VITE_YANDEX_FORMS_PROXY_URL` (for production)
+- optional `VITE_YANDEX_FORMS_KEY` (if your public form link contains `?key=...`)
+
+`VITE_YANDEX_FORMS_OAUTH_TOKEN` is local-only. Do not expose production tokens in frontend env.
+
+## Production architecture
+
+GitHub Pages is static-only and cannot run backend code.
+
+Production setup in this repo:
+1. Frontend deploys to GitHub Pages via `.github/workflows/deploy.yml`.
+2. Forms proxy deploys to Cloudflare Worker via `.github/workflows/deploy-forms-proxy.yml`.
+3. Frontend uses Worker URL from `VITE_YANDEX_FORMS_PROXY_URL`.
+
+## Configure GitHub Pages deploy
+
+In repository **Variables** (`Settings -> Secrets and variables -> Actions -> Variables`), set:
+
+- `VITE_YANDEX_FORMS_SURVEY_ID`
+- `VITE_YANDEX_FORMS_NAME_SLUG`
+- `VITE_YANDEX_FORMS_CONFIRMATION_SLUG`
+- `VITE_YANDEX_FORMS_PROXY_URL` (Worker URL)
+- optional `VITE_YANDEX_FORMS_KEY`
+
+Push to `main` to deploy Pages.
+
+## Configure Cloudflare Worker deploy
+
+Worker source: `proxy-worker/`.
+
+Set GitHub **Secrets**:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `YANDEX_FORMS_OAUTH_TOKEN` (recommended; worker uses this token for upstream submit)
+
+Then run workflow `Deploy Yandex Forms Proxy` or push changes under `proxy-worker/**`.
+
+After first deploy, copy Worker URL (for example `https://wedding-yandex-forms-proxy.<subdomain>.workers.dev`) into repo variable `VITE_YANDEX_FORMS_PROXY_URL`.
+
+## Worker CORS and duplicate protection
+
+Allowed origins are configured in `proxy-worker/wrangler.toml` (`ALLOWED_ORIGINS`).
+
+Server-side duplicate blocking is optional and uses Cloudflare KV:
+
+1. Create KV namespace:
+
+```bash
+cd proxy-worker
+npx wrangler kv namespace create SUBMIT_DEDUP_KV
 ```
+
+2. Copy returned namespace id.
+3. In `proxy-worker/wrangler.toml` uncomment and fill:
+
+```toml
+[[kv_namespaces]]
+binding = "SUBMIT_DEDUP_KV"
+id = "<YOUR_KV_NAMESPACE_ID>"
+```
+
+4. Deploy worker again.
+
+Behavior with KV enabled:
+- Dedup key is computed by `survey_id + normalized field value`.
+- Field name defaults to `name` and is configured by `SUBMIT_DEDUP_FIELD_NAME`.
+- Repeat submit returns `409 duplicate_submission`.
+- TTL configured by `SUBMIT_DEDUP_TTL_SECONDS` (default 1 year).

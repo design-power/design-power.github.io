@@ -17,12 +17,37 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      VITE_YANDEX_FORMS_SURVEY_ID: ${{ vars.VITE_YANDEX_FORMS_SURVEY_ID != '' && vars.VITE_YANDEX_FORMS_SURVEY_ID || secrets.VITE_YANDEX_FORMS_SURVEY_ID }}
+      VITE_YANDEX_FORMS_NAME_SLUG: ${{ vars.VITE_YANDEX_FORMS_NAME_SLUG != '' && vars.VITE_YANDEX_FORMS_NAME_SLUG || secrets.VITE_YANDEX_FORMS_NAME_SLUG }}
+      VITE_YANDEX_FORMS_CONFIRMATION_SLUG: ${{ vars.VITE_YANDEX_FORMS_CONFIRMATION_SLUG != '' && vars.VITE_YANDEX_FORMS_CONFIRMATION_SLUG || secrets.VITE_YANDEX_FORMS_CONFIRMATION_SLUG }}
+      VITE_YANDEX_FORMS_KEY: ${{ vars.VITE_YANDEX_FORMS_KEY != '' && vars.VITE_YANDEX_FORMS_KEY || secrets.VITE_YANDEX_FORMS_KEY }}
+      VITE_YANDEX_FORMS_PROXY_URL: ${{ vars.VITE_YANDEX_FORMS_PROXY_URL != '' && vars.VITE_YANDEX_FORMS_PROXY_URL || secrets.VITE_YANDEX_FORMS_PROXY_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+      - name: Validate required env
+        run: |
+          if [ -z "$VITE_YANDEX_FORMS_SURVEY_ID" ]; then
+            echo "::error::Missing VITE_YANDEX_FORMS_SURVEY_ID (set Repository Variables or Secrets)"
+            exit 1
+          fi
+
+          if [ -z "$VITE_YANDEX_FORMS_PROXY_URL" ]; then
+            echo "::error::Missing VITE_YANDEX_FORMS_PROXY_URL (set Repository Variables or Secrets)"
+            exit 1
+          fi
+
+          if [ -z "$VITE_YANDEX_FORMS_NAME_SLUG" ]; then
+            echo "::warning::VITE_YANDEX_FORMS_NAME_SLUG is empty, fallback default from code will be used"
+          fi
+
+          if [ -z "$VITE_YANDEX_FORMS_CONFIRMATION_SLUG" ]; then
+            echo "::warning::VITE_YANDEX_FORMS_CONFIRMATION_SLUG is empty, fallback default from code will be used"
+          fi
       - run: npm ci
       - run: npm run build
       - run: cp dist/index.html dist/404.html
