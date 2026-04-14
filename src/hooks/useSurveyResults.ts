@@ -49,6 +49,10 @@ const normalizeDecision = (value: unknown) => {
     return 'Не приду';
   }
 
+  if (raw === 'maybe' || raw === 'unknown' || raw === 'затрудняюсь' || raw === 'затрудняюсь ответить') {
+    return 'Затрудняюсь ответить';
+  }
+
   return normalized;
 };
 

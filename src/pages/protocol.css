@@ -697,6 +697,23 @@
   background-color: var(--accent);
 }
 
+.submit + .submit {
+  margin-top: 12px;
+}
+
+.submit--secondary {
+  color: #3f3f3f;
+  background-color: white;
+  border: 1px solid #7d7d7d;
+}
+
+.submit--ghost {
+  color: #747474;
+  background-color: transparent;
+  border: 1px dashed #9f9f9f;
+  text-transform: none;
+}
+
 .protocol-block.protocol-timer {
   margin-top: 30px;
   border: none;

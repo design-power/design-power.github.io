@@ -31,7 +31,22 @@ export function ProtocolPage() {
     verdictStampAnimation,
     dressPaletteTones,
   } = useProtocolAnimations();
-  const { formSubmitStatus, formSubmitMessage, handleSubmitWitnessForm } = useProtocolWitnessForm();
+  const {
+    formSubmitStatus,
+    formSubmitMessage,
+    handleSubmitWitnessForm,
+    nameValue,
+    confirmationValue,
+    shouldShowNameField,
+    shouldShowDecisionFields,
+    shouldShowSubmitButton,
+    shouldShowEditButton,
+    isEditingAnswer,
+    handleNameChange,
+    handleConfirmationChange,
+    startEditingAnswer,
+    cancelEditingAnswer,
+  } = useProtocolWitnessForm();
 
   const swipeHandlers = useHorizontalSwipe({
     onSwipeRight: () => navigate('/'),
@@ -439,7 +454,7 @@ export function ProtocolPage() {
         <h2 className="protocol-title-number" data-number="V.">
           ЯВКА ПОНЯТОГО
         </h2>
-        {formSubmitStatus !== 'success' && (
+        {(shouldShowNameField || shouldShowDecisionFields) && (
           <p className="protocol-witness-text">
             Просим подтвердить личное присутствие <br /> до{' '}
             <span className="protocol-witness-day-wrapper" ref={answerDayAnimation.ref}>
@@ -471,15 +486,20 @@ export function ProtocolPage() {
         )}
 
         <form className="form" onSubmit={handleSubmitWitnessForm}>
-          {formSubmitStatus !== 'success' && (
+          {shouldShowNameField && (
+            <textarea
+              name="name"
+              className="textarea"
+              rows={3}
+              required
+              placeholder="Введите ваше ФИО"
+              value={nameValue}
+              onChange={handleNameChange}
+            />
+          )}
+
+          {shouldShowDecisionFields && (
             <>
-              <textarea
-                name="name"
-                className="textarea"
-                rows={3}
-                required
-                placeholder="Введите ваше ФИО"
-              ></textarea>
               <label className="checkbox-label" htmlFor="checkbox-confirmation-yes">
                 <input
                   id="checkbox-confirmation-yes"
@@ -488,8 +508,23 @@ export function ProtocolPage() {
                   className="checkbox"
                   value="yes"
                   required
+                  checked={confirmationValue === 'yes'}
+                  onChange={handleConfirmationChange}
                 />
                 <span className="checkbox-custom"></span>Я подтверждаю свое присутствие
+              </label>
+              <label className="checkbox-label" htmlFor="checkbox-confirmation-maybe">
+                <input
+                  id="checkbox-confirmation-maybe"
+                  name="confirmation"
+                  type="radio"
+                  className="checkbox"
+                  value="maybe"
+                  required
+                  checked={confirmationValue === 'maybe'}
+                  onChange={handleConfirmationChange}
+                />
+                <span className="checkbox-custom"></span>Затрудняюсь ответить
               </label>
               <label className="checkbox-label" htmlFor="checkbox-confirmation-no">
                 <input
@@ -499,13 +534,44 @@ export function ProtocolPage() {
                   className="checkbox"
                   value="no"
                   required
+                  checked={confirmationValue === 'no'}
+                  onChange={handleConfirmationChange}
                 />
                 <span className="checkbox-custom"></span>Я не приду
               </label>
-              <button className="submit" type="submit" disabled={formSubmitStatus === 'submitting'}>
-                {formSubmitStatus === 'submitting' ? 'Отправка...' : 'Отправить'}
-              </button>
             </>
+          )}
+
+          {shouldShowSubmitButton && (
+            <button className="submit" type="submit" disabled={formSubmitStatus === 'submitting'}>
+              {formSubmitStatus === 'submitting'
+                ? 'Отправка...'
+                : isEditingAnswer
+                  ? 'Сохранить'
+                  : 'Отправить'}
+            </button>
+          )}
+
+          {shouldShowEditButton && (
+            <button
+              className="submit submit--secondary"
+              type="button"
+              disabled={formSubmitStatus === 'submitting'}
+              onClick={startEditingAnswer}
+            >
+              Изменить ответ
+            </button>
+          )}
+
+          {isEditingAnswer && (
+            <button
+              className="submit submit--ghost"
+              type="button"
+              disabled={formSubmitStatus === 'submitting'}
+              onClick={cancelEditingAnswer}
+            >
+              Отмена
+            </button>
           )}
 
           {formSubmitStatus !== 'idle' && (
