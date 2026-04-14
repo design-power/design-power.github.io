@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { animated } from '@react-spring/web';
 import { useHorizontalSwipe } from '../hooks/useHorizontalSwipe';
-import { useStampAnimation } from '../hooks/useStampAnimation';
+import { useCoverOpenButtonStampAnimation } from '../hooks/useCoverOpenButtonStampAnimation';
 import { HandwritingText } from '../components/HandwritingText';
 
 import './cover.css';
@@ -9,10 +8,9 @@ import './cover.css';
 export function CoverPage() {
   const navigate = useNavigate();
 
-  const stampAnimation = useStampAnimation({
+  const openButtonStampAnimation = useCoverOpenButtonStampAnimation({
     delayMs: 2000,
-    baseTransform: 'translateX(-50%)',
-    finalRotationDeg: -19,
+    animationDurationMs: 820,
   });
 
   const swipeHandlers = useHorizontalSwipe({
@@ -47,14 +45,13 @@ export function CoverPage() {
         бракосочетания
       </p>
 
-      <animated.button
+      <button
         type="button"
-        className="cover-open-button"
+        className={`cover-open-button ${openButtonStampAnimation.stampStateClassName}`}
         onClick={handleClick}
-        style={stampAnimation.style}
       >
         Открыть дело
-      </animated.button>
+      </button>
 
       <img className="cover-heart-placeholder" src="/images/heart.webp" alt="" aria-hidden />
     </section>
