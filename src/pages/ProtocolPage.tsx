@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { animated } from '@react-spring/web';
 import { useNavigate } from 'react-router-dom';
 import { useHorizontalSwipe } from '../hooks/useHorizontalSwipe';
 import { useProtocolAnimations } from '../hooks/useProtocolAnimations';
@@ -228,14 +227,13 @@ export function ProtocolPage() {
           2026г.
         </p>
 
-        <animated.svg
-          style={verdictStampAnimation.style}
+        <svg
           width="419"
           height="419"
           viewBox="0 0 419 419"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="protocol-verdict-stamp"
+          className={`protocol-verdict-stamp ${verdictStampAnimation.stampStateClassName}`}
         >
           <g clip-path="url(#clip0_46_969)">
             <path
@@ -304,7 +302,7 @@ export function ProtocolPage() {
               />
             </clipPath>
           </defs>
-        </animated.svg>
+        </svg>
       </section>
 
       <section className="protocol-block protocol-place">

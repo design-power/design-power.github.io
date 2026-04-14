@@ -62,8 +62,8 @@ export function useProtocolAnimations() {
 
   const verdictStampAnimation = useVerdictStampAnimation<HTMLElement>({
     delayMs: 1000,
-    finalRotationDeg: 0,
     triggerBandPercent: 0.1,
+    animationDurationMs: 820,
   });
 
   return {

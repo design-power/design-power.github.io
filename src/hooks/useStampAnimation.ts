@@ -1,5 +1,5 @@
 import { to, useSpring } from '@react-spring/web';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type UseStampAnimationOptions = {
   enabled?: boolean;
@@ -17,16 +17,22 @@ export function useStampAnimation({
   const preparedBaseTransform = useMemo(() => baseTransform.trim(), [baseTransform]);
   const initialRotationDeg = finalRotationDeg - 11;
   const impactRotationDeg = finalRotationDeg + 3;
+  const [isFinalized, setIsFinalized] = useState(false);
+
   const hiddenState = useMemo(
     () => ({
       opacity: 0,
       y: -38,
       scale: 1.45,
       rotation: initialRotationDeg,
-      blur: 6,
     }),
     [initialRotationDeg],
   );
+
+  const finalTransform = useMemo(() => {
+    const motionTransform = `translate3d(0px, 0px, 0) rotate(${finalRotationDeg}deg) scale(1)`;
+    return preparedBaseTransform ? `${preparedBaseTransform} ${motionTransform}` : motionTransform;
+  }, [finalRotationDeg, preparedBaseTransform]);
 
   const [spring, api] = useSpring(() => hiddenState);
   const apiRef = useRef(api);
@@ -37,9 +43,16 @@ export function useStampAnimation({
   useEffect(() => {
     const springApi = apiRef.current;
 
-    if (!enabled || hasPlayedRef.current) {
+    if (!enabled) {
       return;
     }
+
+    if (hasPlayedRef.current) {
+      setIsFinalized(true);
+      return;
+    }
+
+    setIsFinalized(false);
 
     let isCancelled = false;
     const timer = window.setTimeout(
@@ -54,7 +67,6 @@ export function useStampAnimation({
             y: 2,
             scale: 0.94,
             rotation: impactRotationDeg,
-            blur: 0,
             config: {
               tension: 760,
               friction: 24,
@@ -71,7 +83,6 @@ export function useStampAnimation({
             y: 0,
             scale: 1,
             rotation: finalRotationDeg,
-            blur: 0,
             config: {
               tension: 460,
               friction: 19,
@@ -81,6 +92,7 @@ export function useStampAnimation({
 
           if (!isCancelled) {
             hasPlayedRef.current = true;
+            setIsFinalized(true);
           }
         })();
       },
@@ -94,12 +106,20 @@ export function useStampAnimation({
     };
   }, [delayMs, enabled, finalRotationDeg, impactRotationDeg]);
 
+  if (isFinalized) {
+    return {
+      style: {
+        opacity: 1,
+        transform: finalTransform,
+      },
+    };
+  }
+
   return {
     style: {
       opacity: spring.opacity,
-      filter: spring.blur.to((blur) => `blur(${blur}px)`),
       transform: to([spring.y, spring.scale, spring.rotation], (y, scale, rotation) => {
-        const motionTransform = `translateY(${y}px) rotate(${rotation}deg) scale(${scale})`;
+        const motionTransform = `translate3d(0px, ${y}px, 0px) rotate(${rotation}deg) scale(${scale})`;
         return preparedBaseTransform
           ? `${preparedBaseTransform} ${motionTransform}`
           : motionTransform;

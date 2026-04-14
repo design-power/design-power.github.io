@@ -1,57 +1,86 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useStampAnimation } from './useStampAnimation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type UseVerdictStampAnimationOptions = {
   enabled?: boolean;
   delayMs?: number;
-  baseTransform?: string;
-  finalRotationDeg?: number;
   triggerBandPercent?: number;
+  animationDurationMs?: number;
 };
+
+type VerdictStampPhase = 'hidden' | 'queued' | 'playing' | 'done';
 
 type UseVerdictStampAnimationResult<T extends Element> = {
   ref: (node: T | null) => void;
-  style?: ReturnType<typeof useStampAnimation>['style'];
+  stampStateClassName: string;
   isTriggered: boolean;
 };
 
 export function useVerdictStampAnimation<T extends Element = HTMLElement>({
   enabled = true,
   delayMs = 1000,
-  baseTransform = '',
-  finalRotationDeg = 0,
   triggerBandPercent = 0.1,
+  animationDurationMs = 820,
 }: UseVerdictStampAnimationOptions = {}): UseVerdictStampAnimationResult<T> {
   const [node, setNode] = useState<T | null>(null);
-  const [isTriggered, setIsTriggered] = useState(false);
-  const [isAnimationLocked, setIsAnimationLocked] = useState(false);
-  const isTriggeredRef = useRef(false);
+  const [phase, setPhase] = useState<VerdictStampPhase>('hidden');
+
+  const hasTriggeredRef = useRef(false);
+  const startTimerRef = useRef<number | null>(null);
+  const finishTimerRef = useRef<number | null>(null);
 
   const ref = useCallback((target: T | null) => {
     setNode(target);
   }, []);
 
   useEffect(() => {
-    isTriggeredRef.current = isTriggered;
-  }, [isTriggered]);
+    return () => {
+      if (startTimerRef.current !== null) {
+        window.clearTimeout(startTimerRef.current);
+      }
+
+      if (finishTimerRef.current !== null) {
+        window.clearTimeout(finishTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
-    if (!enabled || !node || isTriggeredRef.current) {
+    if (!enabled || !node || hasTriggeredRef.current) {
       return;
     }
 
     if (typeof window === 'undefined') {
-      setIsTriggered(true);
+      hasTriggeredRef.current = true;
+      setPhase('done');
       return;
     }
 
     const clampedBand = Math.min(Math.max(triggerBandPercent, 0.04), 0.8);
+    const safeDelayMs = Math.max(delayMs, 0);
+    const safeAnimationDurationMs = Math.max(animationDurationMs, 100);
     let frameId = 0;
+
+    const onTriggered = () => {
+      hasTriggeredRef.current = true;
+
+      if (safeDelayMs > 0) {
+        setPhase('queued');
+        startTimerRef.current = window.setTimeout(() => {
+          setPhase('playing');
+        }, safeDelayMs);
+      } else {
+        setPhase('playing');
+      }
+
+      finishTimerRef.current = window.setTimeout(() => {
+        setPhase('done');
+      }, safeDelayMs + safeAnimationDurationMs);
+    };
 
     const checkTrigger = () => {
       frameId = 0;
 
-      if (!node || isTriggeredRef.current) {
+      if (!node || hasTriggeredRef.current) {
         return;
       }
 
@@ -68,8 +97,7 @@ export function useVerdictStampAnimation<T extends Element = HTMLElement>({
         return;
       }
 
-      isTriggeredRef.current = true;
-      setIsTriggered(true);
+      onTriggered();
     };
 
     const requestCheck = () => {
@@ -100,33 +128,23 @@ export function useVerdictStampAnimation<T extends Element = HTMLElement>({
         window.cancelAnimationFrame(frameId);
       }
     };
-  }, [enabled, node, triggerBandPercent]);
+  }, [animationDurationMs, delayMs, enabled, node, triggerBandPercent]);
 
-  useEffect(() => {
-    if (!enabled || !isTriggered || isAnimationLocked || typeof window === 'undefined') {
-      return;
+  const stampStateClassName = useMemo(() => {
+    if (phase === 'playing') {
+      return 'is-stamp-playing';
     }
 
-    const lockDelayMs = Math.max(delayMs, 0) + 1200;
-    const lockTimer = window.setTimeout(() => {
-      setIsAnimationLocked(true);
-    }, lockDelayMs);
+    if (phase === 'done') {
+      return 'is-stamp-done';
+    }
 
-    return () => {
-      window.clearTimeout(lockTimer);
-    };
-  }, [delayMs, enabled, isAnimationLocked, isTriggered]);
-
-  const stampAnimation = useStampAnimation({
-    enabled: enabled && isTriggered && !isAnimationLocked,
-    delayMs,
-    baseTransform,
-    finalRotationDeg,
-  });
+    return 'is-stamp-hidden';
+  }, [phase]);
 
   return {
     ref,
-    style: isAnimationLocked ? undefined : stampAnimation.style,
-    isTriggered,
+    stampStateClassName,
+    isTriggered: phase !== 'hidden',
   };
 }
