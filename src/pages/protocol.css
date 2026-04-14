@@ -634,6 +634,10 @@
   font-size: 1rem;
 }
 
+.checkbox-label + .submit {
+  margin-top: 30px;
+}
+
 .checkbox-label:has(:user-invalid) {
   color: var(--accent);
 }
@@ -683,7 +687,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 30px auto 0;
+  margin: 0 auto 0;
   padding-top: 4px;
   min-width: 190px;
   min-height: 40px;
