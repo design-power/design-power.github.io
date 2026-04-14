@@ -53,7 +53,7 @@ export function CoverPage() {
         Открыть дело
       </button>
 
-      <img className="cover-heart-placeholder" src="/images/heart.webp" alt="" aria-hidden />
+      <img className="cover-heart-placeholder" src="/images/heart.webp" alt="" decoding="async" fetchPriority="high" aria-hidden />
     </section>
   );
 }

@@ -77,7 +77,7 @@ export function ProtocolPage() {
     <section className="invitation-screen protocol-screen" {...swipeHandlers}>
       <audio
         ref={audioRef}
-        preload="auto"
+        preload="metadata"
         onPlay={() => setIsMusicPlaying(true)}
         onPause={() => setIsMusicPlaying(false)}
       >
@@ -148,13 +148,15 @@ export function ProtocolPage() {
         <div className="dossier-photo-shell">
           <img
             className="protocol-tape protocol-tape--groom"
-            src="/images/tape-fold.png"
+            src="/images/tape-fold.webp"
             alt="tape"
+            decoding="async"
           />
           <img
             className="dossier-photo dossier-photo--groom"
-            src="/images/groom.png"
+            src="/images/groom.webp"
             alt="Фото жениха"
+            decoding="async"
           />
         </div>
         <p className="dossier-description">
@@ -198,13 +200,15 @@ export function ProtocolPage() {
         <div className="dossier-photo-shell">
           <img
             className="protocol-tape protocol-tape--bride"
-            src="/images/tape-strip.png"
+            src="/images/tape-strip.webp"
             alt="tape"
+            decoding="async"
           />
           <img
             className="dossier-photo dossier-photo--bride"
-            src="/images/bride.png"
+            src="/images/bride.webp"
             alt="Фото невесты"
+            decoding="async"
           />
         </div>
         <p className="dossier-description">
@@ -390,19 +394,28 @@ export function ProtocolPage() {
             className={`evidence-timeline-rings-image ${
               timelineRingsAnimation.isActive ? 'is-drop-visible' : ''
             }`.trim()}
-            src="/images/rings-bag.png"
+            src="/images/rings-bag.webp"
             alt="Пакет с обручальными кольцами"
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
           />
           <img
             className="evidence-timeline-heart evidence-timeline-heart--right"
             src="/images/heart.webp"
             alt="heart"
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
             aria-hidden
           />
           <img
             className="evidence-timeline-heart evidence-timeline-heart--left"
             src="/images/heart.webp"
             alt="heart"
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
             aria-hidden
           />
         </div>
@@ -432,7 +445,7 @@ export function ProtocolPage() {
       </section>
 
       <section className="protocol-block protocol-order">
-        <img className="protocol-order-heart" src="/images/heart.webp" alt="heart" aria-hidden />
+        <img className="protocol-order-heart" src="/images/heart.webp" alt="heart" loading="lazy" decoding="async" fetchPriority="low" aria-hidden />
         <h2 className="protocol-title-number" data-number="IV.">
           ДОПОЛНИТЕЛЬНЫЕ <br /> РАСПОРЯЖЕНИЯ
         </h2>
@@ -446,7 +459,7 @@ export function ProtocolPage() {
           </li>
           <li className="protocol-order-item">Передача цветов допускается.</li>
         </ol>
-        <img className="protocol-order-hands" src="/images/hands.png" alt="heart" aria-hidden />
+        <img className="protocol-order-hands" src="/images/hands.webp" alt="heart" loading="lazy" decoding="async" fetchPriority="low" aria-hidden />
         <div className="protocol-order-line" />
       </section>
 
