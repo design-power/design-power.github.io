@@ -84,8 +84,8 @@ export function ResultsPage() {
   return (
     <section className="invitation-screen results-screen">
       <header className="results-header">
-        <h1 className="results-title">РЕЗУЛЬТАТЫ ОТВЕТОВ</h1>
-        <p className="results-subtitle">Имя и решение по приглашению</p>
+        <h1 className="results-title">СВОДКА ПО ПОНЯТЫМ</h1>
+        <p className="results-subtitle">ФИО и решение</p>
       </header>
 
       <div className="results-actions">
